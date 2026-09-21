@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>TikTok Sign-in — Clip Studio</title>
+<style>
+  :root { --text:#16181d; --muted:#5b6270; --line:#e4e7ec; --bg:#fff; --box:#f4f5f7; }
+  @media (prefers-color-scheme: dark) { :root { --text:#eef0f3; --muted:#a0a8b6; --line:#2a2f39; --bg:#111318; --box:#1b1e25; } }
+  body { margin:0; font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--text); background:var(--bg); }
+  main { max-width:620px; margin:0 auto; padding:56px 20px; }
+  h1 { font-size:26px; margin:0 0 8px; }
+  .muted { color:var(--muted); }
+  code { display:block; padding:12px; margin:12px 0; background:var(--box); border:1px solid var(--line); border-radius:8px;
+         word-break:break-all; font-size:14px; }
+  button { font:inherit; padding:8px 16px; border-radius:8px; border:1px solid var(--line); background:var(--box); color:var(--text); cursor:pointer; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">Finishing TikTok sign-in…</h1>
+  <p id="msg" class="muted">Sending you back to Clip Studio on your computer.</p>
+  <div id="manual" hidden>
+    <p>If Clip Studio didn't pick it up, copy this code and paste it into the terminal where you ran <b>clip.py connect tiktok-api</b>:</p>
+    <code id="code"></code>
+    <button id="copy">Copy code</button>
+  </div>
+</main>
+<script>
+  // TikTok sends the one-time sign-in code here. Clip Studio listens only on this computer (localhost), which TikTok
+  // doesn't accept as a redirect, so this page forwards the code there. Nothing is stored or sent anywhere else.
+  const q = new URLSearchParams(location.search);
+  const code = q.get("code"), err = q.get("error_description") || q.get("error");
+  if (code) {
+    document.getElementById("code").textContent = code;
+    document.getElementById("copy").onclick = () => navigator.clipboard.writeText(code).then(() => {
+      document.getElementById("copy").textContent = "Copied ✓";
+    });
+    let tried = false;
+    try { tried = sessionStorage.getItem("tried") === code; sessionStorage.setItem("tried", code); } catch {}
+    if (tried) {  // came back here (e.g. pressed Back after a failed hand-off): show the code to paste instead
+      document.getElementById("title").textContent = "Almost done";
+      document.getElementById("msg").textContent = "";
+      document.getElementById("manual").hidden = false;
+    } else {
+      setTimeout(() => { document.getElementById("manual").hidden = false; }, 2500);
+      location.assign("http://localhost:8723/callback/" + location.search);
+    }
+  } else {
+    document.getElementById("title").textContent = "TikTok sign-in didn't complete";
+    document.getElementById("msg").textContent = err ? "TikTok said: " + err : "No sign-in code was received. Go back to the terminal and try again.";
+  }
+</script>
+</body>
+</html>
